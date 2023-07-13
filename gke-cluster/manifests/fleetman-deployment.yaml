@@ -1,0 +1,20 @@
+# ---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: hello-gke-extlb
+# spec:
+#   replicas: 3
+#   selector:
+#     matchLabels:
+#       app: webapp
+#   template:
+#     metadata:
+#       labels:
+#         app: webapp
+#     spec:
+#       containers:
+#       - name: hello-kubernetes
+#         image: richardchesterwood/k8s-fleetman-webapp-angular:release0
+#         ports:
+#         - containerPort: 80

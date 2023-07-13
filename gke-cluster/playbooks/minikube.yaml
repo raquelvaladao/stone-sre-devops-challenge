@@ -1,0 +1,18 @@
+- name: Makefile for application deployment on GKE
+  hosts: localhost
+  vars:
+    prod: false # ansible-playbook main.yaml -e "prod=false"
+  tasks:
+    
+    - name: Create app Secret with .env file reference, Deployment and Service
+      command: kubectl apply -f {{ file_name }}
+      loop:
+        # DEPLOY DB / STATEFUL SET AND ...
+        - ../manifests/gke-secret.yaml
+        - ../manifests/gke-deployment.yaml
+        - ../manifests/gke-service.yaml
+      loop_var: file_name
+
+    - name: Create Ingress
+      command: kubectl apply -f ../manifests/gke-ingress.yaml
+      when: prod
