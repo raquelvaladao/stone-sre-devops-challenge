@@ -3,9 +3,20 @@ kind: Ingress
 metadata:
   name: ingress
 spec:
-  defaultBackend:
-    service:
-      name: web
-      port:
-        number: 80
----
+  rules:
+  - http:
+      paths:
+      - path: /sonar/*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: sonar-svc
+            port:
+              number: 9000
+      - path: /app/*
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: web
+            port:
+              number: 80
