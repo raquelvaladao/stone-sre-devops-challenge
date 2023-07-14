@@ -25,6 +25,8 @@ spec:
         env:
         - name: POSTGRES_PASSWORD
           value: postgres
+        - name: POSTGRES_DB
+          value: stone-db
   volumeClaimTemplates:
   - metadata:
       name: db-pvc

@@ -7,7 +7,7 @@ spec:
   ports:
   - port: 80
     protocol: TCP
-    targetPort: 80
+    targetPort: 8080
   selector:
     run: web
   type: NodePort
@@ -18,7 +18,7 @@ metadata:
   name: web
   namespace: default
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       run: web
@@ -28,19 +28,19 @@ spec:
         run: web
     spec:
       containers:
-      - image: richardchesterwood/k8s-fleetman-webapp-angular:release0  ## pull
+      - image: registry.gitlab.com/raquelvaladao/stone/demo:0.0.2  ## pull
         imagePullPolicy: IfNotPresent
         name: web
         ports:
-        - containerPort: 80
+        - containerPort: 8080
           protocol: TCP
-        resources:
-          requests:
-            memory: "64Mi"
-            cpu: "250m"
-          limits:
-            memory: "128Mi"
-            cpu: "500m"
+        # resources:
+        #   requests:
+        #     memory: "64Mi"
+        #     cpu: "250m"
+        #   limits:
+        #     memory: "128Mi"
+        #     cpu: "500m"
         # envFrom:
         #   - secretRef:
         #     name: gke-env-secret.yaml
