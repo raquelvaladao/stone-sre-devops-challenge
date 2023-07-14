@@ -1,14 +1,13 @@
-apiVersion: v1
+apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres-statefulset
+  name: postgresql
 spec:
   selector:
     matchLabels:
       app: postgres
       version: v1
-  serviceName: postgres-statefulset   ##
-  replicas: 3
+  replicas: 1
   template:
     metadata:
       labels:
@@ -17,31 +16,34 @@ spec:
     spec:
       containers:
       - name: db-postgres
-        image: postgres
+        image: postgres:13.2
         ports:
         - containerPort: 5432
-          name: http
         volumeMounts:
-        - name: postgres-volume
-          mountPath: "/var/lib/postgresql/data"
+        - name: db-pvc
+          mountPath: "/var/lib/postgresql/data-new"
+        env:
+        - name: POSTGRES_PASSWORD
+          value: postgres
   volumeClaimTemplates:
   - metadata:
-      name: postgres-pvc
+      name: db-pvc
     spec:
       accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
-          storage: 2Gi
+          storage: 1Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-service
+  name: postgresql
 spec:
   selector:
     app: postgres
+    version: v1
   ports:
     - protocol: TCP
       port: 5432
-      targetPort: postgresql
+      targetPort: 5432
   type: ClusterIP
