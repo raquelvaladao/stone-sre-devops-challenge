@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+  workflow_dispatch:
+
+jobs: 
+  build:
+    name: Build jar file
+    runs-on: ubuntu-latest
+    container: maven:3.6.3-openjdk-11
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          path: 'app-repo'
+      - name: Build
+        run: |
+          mvn clean install -DskipTests -f ./pom.xml
+  
+  sonar:
+    name: sonar
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Maven
+        uses: actions/setup-java@v2
+        with:
+          java-version: '11'
+          maven-version: '3.6.3'
+      - name: Cache SonarQube
+        uses: actions/cache@v2
+        with:
+          path: .sonar/cache
+          key: test
+      - name: Run SonarQube analysis
+        run: mvn verify sonar:sonar -Dsonar.projectKey=stone -Dsonar.projectName=stone -Dsonar.qualitygate.wait=true -Dsonar.host.url=${{ secrets.SONAR_HOST }}
+        
+  publish:
+    name: Build and Push Docker Image
+    needs: sonar
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          path: 'app-repo'
+
+      - name: Log into GitHub Container Registry
+        run: echo ${{ secrets.REGISTRY_TOKEN }} | docker login ghcr.io -u raquelvaladao --password-stdin
+        
+      - name: Build Docker image
+        run: docker build -t ghcr.io/raquelvaladao/stone-app:0.0.1 .
+
+      - name: Push Docker image
+        run: docker push ghcr.io/raquelvaladao/stone-app:0.0.1
