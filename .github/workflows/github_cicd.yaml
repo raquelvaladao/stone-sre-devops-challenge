@@ -22,7 +22,7 @@ jobs:
         run: |
           mvn clean install -DskipTests -f ./pom.xml
   
-  test:
+  sonar:
     name: Sonar Test
     runs-on: ubuntu-latest
     steps:
