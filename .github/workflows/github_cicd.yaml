@@ -59,7 +59,7 @@ jobs:
         
   publish:
     name: Build and Push Docker Image
-    needs: sonar
+    needs: [build, test]
     runs-on: ubuntu-latest
     defaults:
       run:
