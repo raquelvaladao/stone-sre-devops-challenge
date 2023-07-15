@@ -28,7 +28,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: app-jar
-          path: app-repo/target/*.jar
+          path: target/*.jar
   
   sonar:
     name: Sonar Test
