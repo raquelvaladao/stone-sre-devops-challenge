@@ -19,16 +19,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+
       - name: Build and generate version info
         run: |
           mvn clean install
           mvn help:evaluate -Dexpression=project.name -q -DforceStdout > target/NAME
           mvn help:evaluate -Dexpression=project.version -q -DforceStdout > target/VERSION
+
       - name: Archive artifacts
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
-          path: target/
+          path: app-repo/target/
+          if-no-files-found: error
   
   sonar:
     name: Sonar Test
@@ -79,7 +82,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: build-artifacts
-          path: target/
+          path: app-repo/target/
 
       - name: Log into GitHub Container Registry
         run: echo ${{ secrets.REGISTRY_TOKEN }} | docker login ghcr.io -u raquelvaladao --password-stdin
