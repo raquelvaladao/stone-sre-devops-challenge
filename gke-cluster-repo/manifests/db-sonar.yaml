@@ -18,8 +18,8 @@ metadata:
   labels:
     app: sonar-postgres
 data:
-  POSTGRESQL_USERNAME: admin
-  POSTGRESQL_PASSWORD: admin
+  POSTGRESQL_USERNAME: postgres
+  POSTGRESQL_PASSWORD: postgres
   POSTGRESQL_DATABASE: sonar_db
 ---
 apiVersion: v1

@@ -19,8 +19,8 @@ metadata:
     app: sonar
 data:
   SONARQUBE_JDBC_URL: "jdbc:postgresql://sonar-postgres:5432/sonar_db"
-  SONARQUBE_JDBC_USERNAME: "admin"
-  SONARQUBE_JDBC_PASSWORD: "admin"
+  SONARQUBE_JDBC_USERNAME: "postgres"
+  SONARQUBE_JDBC_PASSWORD: "postgres"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,37 +41,29 @@ spec:
       labels:
         app: sonar
     spec:
-      initContainers:
-      - name: init
-        image: busybox
-        command:
-        - sysctl
-        - -w
-        - vm.max_map_count=262144
-        imagePullPolicy: IfNotPresent
-        securityContext:
-          privileged: true
       containers:
       - name: sonarqube
-        image: sonarqube:8.9.1-community
+        image: sonarqube:community
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 9000
         envFrom:
         - configMapRef:
             name: sonar-config
-        volumeMounts:
-        - name: app-pvc
-          mountPath: "/opt/sonarqube/data/"
-          subPath: data
-        - name: app-pvc
-          mountPath: "/opt/sonarqube/extensions/"
-          subPath: extensions
         resources:
           requests:
             memory: "1024Mi"
           limits:
             memory: "2048Mi"
+        readinessProbe:
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          httpGet:
+            host:
+            scheme: HTTP
+            path: /
+            port: 9000
       volumes:
       - name: app-pvc
         persistentVolumeClaim:
@@ -89,6 +81,7 @@ spec:
   - port: 9000
     protocol: TCP
     targetPort: 9000
+    nodePort: 30009
   selector:
     app: sonar
   type: NodePort
