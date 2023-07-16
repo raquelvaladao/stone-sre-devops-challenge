@@ -3,3 +3,6 @@
 
 ## Link repo aplicação no Gitlab
 - [gitlab.com/raquelvaladao/stone](https://gitlab.com/raquelvaladao/stone)
+
+## Docker-compose
+- Presente
