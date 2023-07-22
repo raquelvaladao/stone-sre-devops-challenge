@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: ["dev"]
+    branches: ["ops"]
   pull_request:
-    branches: ["dev"]
+    branches: ["ops"]
 
   workflow_dispatch:
 
@@ -15,7 +15,7 @@ jobs:
     container: maven:3.6.3-openjdk-11
     defaults:
       run:
-        working-directory: app-repo
+        working-directory: entregavel-1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -30,50 +30,51 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: build-artifacts
-          path: app-repo/target/
+          path: entregavel-1/target/
           if-no-files-found: error
   
-  sonar:
-    name: Sonar Test
+  # sonar:
+  #   name: Sonar Test
+  #   needs: build
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: entregavel-1
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 0
+      # - name: Set up JDK 11
+      #   uses: actions/setup-java@v1
+      #   with:
+      #     java-version: 11
+      # - name: Cache SonarQube packages
+      #   uses: actions/cache@v1
+      #   with:
+      #     path: ~/.sonar/cache
+      #     key: ${{ runner.os }}-sonar
+      #     restore-keys: ${{ runner.os }}-sonar
+      # - name: Cache Maven packages
+      #   uses: actions/cache@v1
+      #   with:
+      #     path: ~/.m2
+      #     key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+      #     restore-keys: ${{ runner.os }}-m2
+      # - name: Build and analyze
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      #     SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      #   run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=stone-app -Dsonar.projectName='stone-app'
+        
+  publish:
+    name: Build and Push Docker Image
+    # needs: sonar
     needs: build
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: app-repo
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: Set up JDK 11
-        uses: actions/setup-java@v1
-        with:
-          java-version: 11
-      - name: Cache SonarQube packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
-      - name: Cache Maven packages
-        uses: actions/cache@v1
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-      - name: Build and analyze
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=stone-app -Dsonar.projectName='stone-app'
-        
-  publish:
-    name: Build and Push Docker Image
-    needs: sonar
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app-repo
+        working-directory: entregavel-1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -82,13 +83,56 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: build-artifacts
-          path: app-repo/target/
+          path: entregavel-1/target/
 
       - name: Log into GitHub Container Registry
         run: echo ${{ secrets.REGISTRY_TOKEN }} | docker login ghcr.io -u raquelvaladao --password-stdin
         
-      - name: Build Docker image
-        run: docker build -t ghcr.io/raquelvaladao/stone-app:0.0.1 .
+      - name: Build-Push Docker image
+        run: |
+          version=$(cat entregavel-1/target/VERSION)
+          docker build -t ghcr.io/raquelvaladao/stone-app:$version .
+          docker push ghcr.io/raquelvaladao/stone-app:$version
+  
+  deploy:
+    name: Deploy on GKE
+    needs: publish
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: entregavel-1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Push Docker image
-        run: docker push ghcr.io/raquelvaladao/stone-app:0.0.1
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: entregavel-1/target/
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.3.0
+        with:
+          project_id: ${{ secrets.GKE_PROJECT_ID }}
+          service_account_key: ${{ secrets.GKE_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Authenticate with GKE
+        run: gcloud container clusters get-credentials ${{ secrets.GKE_PROJECT }} --zone ${{ secrets.GKE_ZONE }} --project ${{ secrets.GKE_PROJECT }}
+
+      - name: Setup Kubectl
+        run: gcloud components install kubectl
+
+      - name: Set up Kustomize
+        run: |
+          curl -sfLo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/v3.1.0/kustomize_3.1.0_linux_amd64
+          chmod u+x ./kustomize
+
+      - name: Update Kustomize Image
+        run: |
+          version=$(cat entregavel-1/target/VERSION)
+          kubectl set image manifests/app-deploy-svc.yaml web=ghcr.io/raquelvaladao/stone-app:$version
+
+      # - name: Deploy to GKE
+      #   run: kubectl apply -k entregavel-1/manifests/*
