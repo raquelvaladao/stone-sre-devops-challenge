@@ -90,7 +90,7 @@ jobs:
         
       - name: Build-Push Docker image
         run: |
-          version=$(cat entregavel-1/target/VERSION)
+          version=$(cat target/VERSION)
           docker build -t ghcr.io/raquelvaladao/stone-app:$version .
           docker push ghcr.io/raquelvaladao/stone-app:$version
   
@@ -126,8 +126,8 @@ jobs:
 
       - name: Update Image
         run: |
-          version=$(cat entregavel-1/target/VERSION)
-          kubectl set image entregavel-1/manifests/app-deploy-svc.yaml web=ghcr.io/raquelvaladao/stone-app:$version
+          version=$(cat target/VERSION)
+          kubectl set image manifests/app-deploy-svc.yaml web=ghcr.io/raquelvaladao/stone-app:$version
 
       # - name: Deploy to GKE
       #   run: kubectl apply -k entregavel-1/manifests/*
