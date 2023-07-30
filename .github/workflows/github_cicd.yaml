@@ -127,7 +127,7 @@ jobs:
       - name: Update Image
         run: |
           version=$(cat target/VERSION)
-          kubectl set image entregavel-1/manifests/app-deploy-svc.yaml web=ghcr.io/raquelvaladao/stone-app:$version
+          kubectl set image -f entregavel-1/manifests/deploy.yaml web=ghcr.io/raquelvaladao/stone-app:$version
 
       # - name: Deploy to GKE
       #   run: kubectl apply -k entregavel-1/manifests/*
